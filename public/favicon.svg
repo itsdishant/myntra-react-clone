@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Atelier">
+  <defs>
+    <linearGradient id="atelier-wash" x1="12" y1="8" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FDFCFC"/>
+      <stop offset="1" stop-color="#FCE7F0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Soft Atelier tile -->
+  <rect width="64" height="64" rx="16" fill="url(#atelier-wash)"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="14.5" fill="none" stroke="#EFE4E9" stroke-width="3"/>
+
+  <!-- Stylized A mark -->
+  <path
+    d="M32 14 L48 50 H41.2 L37.4 40.2 H26.6 L22.8 50 H16 L32 14 Z M28.9 34.2 H35.1 L32 26.1 L28.9 34.2 Z"
+    fill="#BE185D"
+  />
+
+  <!-- Quiet amber accent tick -->
+  <circle cx="48.5" cy="17.5" r="3.25" fill="#D97706"/>
+</svg>
