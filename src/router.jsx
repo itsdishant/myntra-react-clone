@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import {
   createBrowserRouter,
   isRouteErrorResponse,
   RouterProvider,
   useLoaderData,
   useNavigate,
+  useNavigation,
   useOutletContext,
   useRevalidator,
   useRouteError,
@@ -19,6 +20,7 @@ import App from "./App.jsx";
 import Home from "./pages/Home.jsx";
 import Bag from "./pages/Bag.jsx";
 import Product from "./pages/Product.jsx";
+import Success from "./pages/Success.jsx";
 import { bagActions } from "./store/Bag.jsx";
 import {
   DEFAULT_FILTERS,
@@ -117,6 +119,9 @@ function HomePreview() {
   const bagItems = useSelector((state) => state.bag.items);
   const { searchQuery = "", onClearSearch } = useOutletContext() ?? {};
 
+  const navigation = useNavigation();
+  const [isPending, startTransition] = useTransition();
+
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [sort, setSort] = useState("featured");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -124,27 +129,35 @@ function HomePreview() {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   const handleFiltersChange = (nextFilters) => {
-    setFilters(nextFilters);
-    setPage(1);
+    startTransition(() => {
+      setFilters(nextFilters);
+      setPage(1);
+    });
   };
 
   const handleSortChange = (nextSort) => {
-    setSort(nextSort);
-    setPage(1);
+    startTransition(() => {
+      setSort(nextSort);
+      setPage(1);
+    });
   };
 
   const handlePageSizeChange = (nextPageSize) => {
-    setPageSize(nextPageSize);
-    setPage(1);
+    startTransition(() => {
+      setPageSize(nextPageSize);
+      setPage(1);
+    });
   };
 
   const handleRemoveChip = (chip) => {
-    setPage(1);
-    if (chip.group === "search") {
-      onClearSearch?.();
-      return;
-    }
-    setFilters((current) => removeFilterChip(current, chip));
+    startTransition(() => {
+      setPage(1);
+      if (chip.group === "search") {
+        onClearSearch?.();
+        return;
+      }
+      setFilters((current) => removeFilterChip(current, chip));
+    });
   };
 
   const searchedItems = useMemo(
@@ -187,16 +200,20 @@ function HomePreview() {
   }, [filters, searchQuery]);
 
   const handlePageChange = (nextPage) => {
-    setPage(nextPage);
-    document
-      .getElementById("main-content")
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    startTransition(() => {
+      setPage(nextPage);
+      document
+        .getElementById("main-content")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   };
 
   const handleClearFilters = () => {
-    setFilters(DEFAULT_FILTERS);
-    onClearSearch?.();
-    setPage(1);
+    startTransition(() => {
+      setFilters(DEFAULT_FILTERS);
+      onClearSearch?.();
+      setPage(1);
+    });
   };
 
   const handleAddToBag = (item, quantity = 1) => {
@@ -206,6 +223,8 @@ function HomePreview() {
   const handleRemoveFromBag = (itemId) => {
     dispatch(bagActions.removeFromBag(itemId));
   };
+
+  const isLoading = isPending || navigation.state === "loading";
 
   return (
     <Home
@@ -221,6 +240,7 @@ function HomePreview() {
       sort={sort}
       chips={chips}
       filtersOpen={filtersOpen}
+      isLoading={isLoading}
       onFiltersChange={handleFiltersChange}
       onSortChange={handleSortChange}
       onPageChange={handlePageChange}
@@ -239,6 +259,8 @@ function BagPreview() {
   const dispatch = useDispatch();
   const bagItems = useSelector((state) => state.bag.items);
   const [toastMessage, setToastMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   const handleRemove = (itemId) => {
     dispatch(bagActions.removeFromBag(itemId));
@@ -252,35 +274,84 @@ function BagPreview() {
     dispatch(bagActions.clearBag());
   };
 
-  const handlePlaceOrder = () => {
-    dispatch(bagActions.clearBag());
-    setToastMessage(
-      "Thank you for your order! Your purchase has been placed successfully.",
+  const handlePlaceOrder = async () => {
+    if (!bagItems.length) return;
+    setIsPlacingOrder(true);
+    setErrorMessage("");
+
+    const totalDiscountedPrice = bagItems.reduce(
+      (sum, item) => sum + (item.price ?? 0) * (item.quantity || 1),
+      0,
     );
+    const convenienceFee = totalDiscountedPrice > 50 ? 0 : 5;
+
+    try {
+      const response = await fetch(
+        "http://localhost:4000/api/create-checkout-session",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            items: bagItems,
+            convenienceFee,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error || "Failed to create Stripe checkout session.",
+        );
+      }
+
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("Stripe checkout URL missing from response.");
+      }
+    } catch (err) {
+      console.error("Stripe Checkout Error:", err);
+      setErrorMessage(
+        err.message ||
+          "Failed to initiate payment. Please make sure the server is running.",
+      );
+      setIsPlacingOrder(false);
+    }
   };
 
   return (
     <>
       <Bag
         items={bagItems}
+        isPlacingOrder={isPlacingOrder}
         onRemove={handleRemove}
         onUpdateQuantity={handleUpdateQuantity}
         onClearCart={handleClearCart}
         onPlaceOrder={handlePlaceOrder}
       />
       <Snackbar
-        open={Boolean(toastMessage)}
-        autoHideDuration={4000}
-        onClose={() => setToastMessage("")}
+        open={Boolean(errorMessage || toastMessage)}
+        autoHideDuration={5000}
+        onClose={() => {
+          setToastMessage("");
+          setErrorMessage("");
+        }}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert
-          onClose={() => setToastMessage("")}
-          severity="success"
+          onClose={() => {
+            setToastMessage("");
+            setErrorMessage("");
+          }}
+          severity={errorMessage ? "error" : "success"}
           variant="filled"
           sx={{ width: "100%" }}
         >
-          {toastMessage}
+          {errorMessage || toastMessage}
         </Alert>
       </Snackbar>
     </>
@@ -378,6 +449,10 @@ const router = createBrowserRouter([
       {
         path: "bag",
         element: <BagPreview />,
+      },
+      {
+        path: "success",
+        element: <Success />,
       },
     ],
   },

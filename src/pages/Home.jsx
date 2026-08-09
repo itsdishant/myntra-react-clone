@@ -7,6 +7,7 @@ import HomeItem from "../components/HomeItem";
 import FilterSidebar from "../components/FilterSidebar";
 import ResultsToolbar from "../components/ResultsToolbar";
 import CatalogPagination from "../components/CatalogPagination";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 /**
  * Amazon-lite catalog layout — presentational.
@@ -25,6 +26,7 @@ const Home = ({
   sort = "featured",
   chips = [],
   filtersOpen = false,
+  isLoading = false,
   onFiltersChange,
   onSortChange,
   onPageChange,
@@ -68,7 +70,9 @@ const Home = ({
               onOpenFilters={onOpenFilters}
             />
 
-            {resultCount === 0 ? (
+            {isLoading ? (
+              <LoadingSpinner />
+            ) : resultCount === 0 ? (
               <Box className="rounded-2xl border border-dashed border-(--color-border) bg-surface/80 px-6 py-16 text-center">
                 <Typography className="mb-2 text-lg font-medium text-foreground">
                   No products match these filters

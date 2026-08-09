@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Brand**: Atelier (rose `#BE185D`, amber `#D97706`, Cormorant + Montserrat)
 - **Architecture**: Design-first, dumb/presentational components; data wiring in router/wrappers and Redux store
 - **Product shape**: DummyJSON `/products` compatible
-- **Routes**: `/` (Home/catalog), `/product/:id` (Product detail), `/bag` (Cart)
+- **Routes**: `/` (Home/catalog), `/product/:id` (Product detail), `/bag` (Cart), `/success` (Order confirmation)
 
 ## Tech Stack
 
@@ -21,6 +21,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Theme   | MUI `ThemeProvider` via `src/theme.js` + Atelier design tokens                            |
 | State   | Redux Toolkit (`@reduxjs/toolkit` + `react-redux`) for cart state (`src/store/`)          |
 | Data    | DummyJSON catalog API for Home & Product details                                          |
+| Payment | Stripe Checkout API via Express backend (`server.js`) & Stripe Sandbox                    |
 
 **Do not** introduce Bootstrap or legacy `BrowserRouter` + `<Routes>`.
 
@@ -36,15 +37,16 @@ npm run preview  # Preview production build
 
 ## Architecture
 
-```
+```text
+server.js         # Node/Express backend for Stripe Checkout Session API (port 4000)
 src/
-  main.jsx          # App bootstrap: Redux Provider, MUI ThemeProvider, AppRouter
-  router.jsx        # Routes, loaders (homeLoader, productLoader), preview wrappers, RootErrorElement
-  App.jsx           # Shell: Header + <Outlet context> + Footer
-  pages/            # Presentational pages (Home, Product, Bag) — props in, UI out
-  components/       # Presentational UI pieces
-  utils/            # Pure helpers (filters, product formatting)
-  store/            # Redux store (`Store.jsx`) and bag slice (`Bag.jsx`)
+  main.jsx        # App bootstrap: Redux Provider, MUI ThemeProvider, AppRouter
+  router.jsx      # Routes, loaders, preview wrappers, RootErrorElement, Success route
+  App.jsx         # Shell: Header + <Outlet context> + Footer
+  pages/          # Presentational pages (Home, Product, Bag, Success) — props in, UI out
+  components/     # Presentational UI pieces
+  utils/          # Pure helpers (filters, product formatting)
+  store/          # Redux store (`Store.jsx`) and bag slice (`Bag.jsx`)
 ```
 
 ### Data Flow
@@ -60,6 +62,7 @@ src/
 - **Loaders**: `homeLoader` fetches from DummyJSON `/products?limit=0`; `productLoader` fetches from DummyJSON `/products/:id`.
 - **Error Boundaries**: `RootErrorElement` in `src/router.jsx` catches thrown loader responses and renders a recoverable error UI.
 - **Preview wrappers** (`HomePreview`, `ProductPreview`, `BagPreview`) bridge loader data and Redux store state to presentational page components.
+- **Stripe Integration**: `BagPreview` POSTs to `http://localhost:4000/api/create-checkout-session` for Stripe Checkout redirect; `/success` page fetches payment confirmation details via `GET /api/checkout-session/:sessionId` and dispatches `clearBag()`.
 - **Search is two-step**: `searchDraft` (input) vs `searchQuery` (committed on submit); clearing chips calls `onClearSearch` from outlet context.
 - **Outlet context**: `Home` uses `useOutletContext()` for search; don't re-invent search state inside `Home.jsx`.
 - **404s**: failed product fetches throw `new Response(..., { status: 404 })` (data router), preserving response status codes.

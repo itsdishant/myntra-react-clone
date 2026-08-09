@@ -92,7 +92,7 @@ const FilterSidebar = ({
       </FilterSection>
 
       <FilterSection title="Price">
-        <Typography className="mb-3 text-sm text-(--color-foreground-muted)">
+        <Typography className="mb-3 text-sm font-bold text-(--color-foreground)">
           {formatMoney(priceValue[0])} – {formatMoney(priceValue[1])}
         </Typography>
         <Slider
@@ -152,11 +152,11 @@ const FilterSidebar = ({
                           },
                         }}
                       />
-                      <Typography className="text-sm text-(--color-foreground-muted)">
+                      <Typography className="text-sm font-bold text-(--color-foreground-muted)">
                         & Up
                       </Typography>
                     </Box>
-                    <Typography className="text-xs text-(--color-foreground-muted)">
+                    <Typography className="text-xs font-bold text-(--color-foreground-muted)">
                       ({count})
                     </Typography>
                   </Box>
@@ -194,7 +194,7 @@ const FilterSidebar = ({
 
 const FilterSection = ({ title, children, last = false }) => (
   <Box className={last ? "pt-1" : "mb-4"}>
-    <Typography className="mb-2 text-xs font-semibold tracking-[0.12em] text-foreground uppercase">
+    <Typography className="mb-2 text-xs font-bold tracking-[0.12em] text-foreground uppercase">
       {title}
     </Typography>
     {children}
@@ -205,11 +205,13 @@ const FilterSection = ({ title, children, last = false }) => (
 const FilterLabel = ({ name, count, capitalize = false }) => (
   <Box className="flex w-full items-center justify-between gap-2">
     <span
-      className={`text-sm text-foreground ${capitalize ? "capitalize" : ""}`}
+      className={`text-sm font-bold text-foreground ${capitalize ? "capitalize" : ""}`}
     >
       {name}
     </span>
-    <span className="text-xs text-(--color-foreground-muted)">({count})</span>
+    <span className="text-xs font-bold text-(--color-foreground-muted)">
+      ({count})
+    </span>
   </Box>
 );
 

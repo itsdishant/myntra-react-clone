@@ -16,6 +16,7 @@ const CONVENIENCE_FEE = 5;
  */
 const Bag = ({
   items = [],
+  isPlacingOrder = false,
   onRemove,
   onUpdateQuantity,
   onClearCart,
@@ -105,6 +106,7 @@ const Bag = ({
           totalDiscount={totalDiscount}
           convenienceFee={convenienceFee}
           finalPayment={finalPayment}
+          isPlacingOrder={isPlacingOrder}
           onPlaceOrder={onPlaceOrder}
           onClearCart={onClearCart}
         />
