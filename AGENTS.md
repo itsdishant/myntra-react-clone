@@ -10,7 +10,7 @@ Agent memory for this repo. Prefer current React / React Router patterns; keep p
 
 - Brand: **Atelier** (rose `#BE185D`, amber `#D97706`, Cormorant + Montserrat)
 - Goal: design-first, dumb/presentational components; data wiring lives in routers/wrappers (and later Redux)
-- Product shape: DummyJSON `/products` compatible (`src/data/mockItems.js`)
+- Product shape: DummyJSON `/products` compatible
 - Home and product detail load from DummyJSON via route loaders; client filter/sort/search runs on the loaded catalog
 
 Routes:
@@ -25,14 +25,14 @@ Routes:
 
 ## Tech stack
 
-| Layer   | Choice                                                                                                                |
-| ------- | --------------------------------------------------------------------------------------------------------------------- |
-| Runtime | React 19 + Vite 8                                                                                                     |
-| Routing | React Router 7 **data API**: `createBrowserRouter` + `RouterProvider`                                                 |
-| UI      | MUI 9 (components/icons) + Tailwind CSS v4 (`@theme` tokens in `src/index.css`)                                       |
-| Theme   | MUI `ThemeProvider` via `src/theme.js` + Atelier design tokens                                                        |
-| State   | Local React state in route wrappers today; `@reduxjs/toolkit` installed but **not wired** (`src/store/Bag.jsx` empty) |
-| Data    | Mock catalog + DummyJSON for PDP loader                                                                               |
+| Layer   | Choice                                                                           |
+| ------- | -------------------------------------------------------------------------------- |
+| Runtime | React 19 + Vite 8                                                                |
+| Routing | React Router 7 **data API**: `createBrowserRouter` + `RouterProvider`            |
+| UI      | MUI 9 (components/icons) + Tailwind CSS v4 (`@theme` tokens in `src/index.css`)  |
+| Theme   | MUI `ThemeProvider` via `src/theme.js` + Atelier design tokens                   |
+| State   | Redux Toolkit (`@reduxjs/toolkit` + `react-redux`) for cart state (`src/store/`) |
+| Data    | DummyJSON catalog API for Home & Product details                                 |
 
 **Do not** introduce Bootstrap or the legacy `BrowserRouter` + `<Routes>` tree.
 
@@ -42,13 +42,13 @@ Routes:
 
 ```
 src/
-  main.jsx          # Router, loaders, hybrid preview wrappers (HomePreview, ProductPreview, RootLayout)
+  main.jsx          # App bootstrap: Redux Provider, MUI ThemeProvider, AppRouter
+  router.jsx        # Routes, loaders (homeLoader, productLoader), preview wrappers, RootErrorElement
   App.jsx           # Shell: Header + <Outlet context> + Footer
   pages/            # Presentational pages (Home, Product, Bag) — props in, UI out
   components/       # Presentational UI pieces
-  data/mockItems.js # DummyJSON-shaped mock catalog + bag fixtures
   utils/            # Pure helpers (filters, product formatting)
-  store/            # Redux home (not wired yet)
+  store/            # Redux store (`Store.jsx`) and bag slice (`Bag.jsx`)
 design-system/atelier/
   MASTER.md         # Global design rules
   pages/*.md        # Per-page overrides (win over MASTER)

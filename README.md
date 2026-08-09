@@ -22,14 +22,14 @@ A Myntra-inspired fashion e-commerce clone rebuilt as an original brand with Ama
 
 ## Tech Stack
 
-| Layer   | Choice                                                                              |
-| ------- | ----------------------------------------------------------------------------------- |
-| Runtime | React 19 + Vite 8                                                                   |
-| Routing | React Router 7 **data API** (`createBrowserRouter` + `RouterProvider`)              |
-| UI      | MUI 9 (components/icons) + Tailwind CSS v4 (`@theme` tokens in `src/index.css`)     |
-| Theme   | MUI `ThemeProvider` via `src/theme.js` + Atelier design tokens                      |
-| State   | Local React state in route wrappers; `@reduxjs/toolkit` installed but **not wired** |
-| Data    | Mock catalog + DummyJSON for PDP loader                                             |
+| Layer   | Choice                                                                                     |
+| ------- | ------------------------------------------------------------------------------------------ |
+| Runtime | React 19 + Vite 8                                                                          |
+| Routing | React Router 7 **data API** (`createBrowserRouter` + `RouterProvider` in `src/router.jsx`) |
+| UI      | MUI 9 (components/icons) + Tailwind CSS v4 (`@theme` tokens in `src/index.css`)            |
+| Theme   | MUI `ThemeProvider` via `src/theme.js` + Atelier design tokens                             |
+| State   | Redux Toolkit (`@reduxjs/toolkit` + `react-redux`) for cart state (`src/store/`)           |
+| Data    | DummyJSON catalog API for Home & Product details                                           |
 
 ---
 
@@ -37,21 +37,21 @@ A Myntra-inspired fashion e-commerce clone rebuilt as an original brand with Ama
 
 ```
 src/
-  main.jsx          # Router, loaders, preview wrappers (HomePreview, ProductPreview, RootLayout)
+  main.jsx          # App bootstrap: Redux Provider, MUI ThemeProvider, AppRouter
+  router.jsx        # Routes, loaders (homeLoader, productLoader), preview wrappers, RootErrorElement
   App.jsx           # Shell: Header + <Outlet context> + Footer
   pages/            # Presentational pages (Home, Product, Bag) — props in, UI out
   components/       # Presentational UI pieces
-  data/mockItems.js # DummyJSON-shaped mock catalog + bag fixtures
   utils/            # Pure helpers (filters, product formatting)
-  store/            # Redux home (not wired yet)
+  store/            # Redux store (`Store.jsx`) and bag slice (`Bag.jsx`)
 ```
 
 ### Data Flow
 
-1. `createBrowserRouter` owns routes; layout route `RootLayout` owns header search draft/committed query.
+1. `createBrowserRouter` in `src/router.jsx` owns routes; layout route `RootLayout` owns header search draft/committed query.
 2. `App` renders chrome and passes `{ searchQuery, onClearSearch }` via `<Outlet context>`.
-3. Pages stay dumb: `Home` / `Product` / `Bag` receive props; no fetching inside them.
-4. Wire fetching in **loaders / route wrappers / future store**, not in leaf UI.
+3. Redux store (`src/store/Bag.jsx`) manages cart items, quantities, and cart modifications.
+4. Pages stay dumb: `Home` / `Product` / `Bag` receive props; no direct API fetching inside leaf pages.
 5. Filter/sort helpers are pure functions in `src/utils/filters.js`.
 
 ---
@@ -94,25 +94,25 @@ Utility classes available in `@layer utilities`:
 
 ---
 
-## Hard Rules (from AGENTS.md)
+## Hard Rules
 
-1. **Presentational pages/components** — no API calls, no store subscriptions in `pages/` or dumb `components/`
+1. **Presentational pages/components** — no API calls in `pages/` or dumb `components/`
 2. **React Router 7 data API** — `createBrowserRouter`, loaders/actions, `useLoaderData`, `RouterProvider`
 3. **Keep Atelier styling** — 4-color tokens, Cormorant/Montserrat; avoid generic themes
 4. **DummyJSON shape** — product objects must stay compatible with DummyJSON fields
 5. **Amazon-lite catalog UX** — results-first home; sidebar filters; dense grid; whole card links to PDP
-6. **Don't wire Redux** until asked — RTK installed for later
+6. **Redux for Cart State** — RTK slice in `src/store/Bag.jsx` manages cart state
 7. **`async function`**, never `function async`
 
 ---
 
 ## Routes
 
-| Path           | Page                     | Loader                                       |
+| Path           | Page                     | Loader / Source                              |
 | -------------- | ------------------------ | -------------------------------------------- |
 | `/`            | Home (catalog + filters) | `homeLoader` → DummyJSON `/products?limit=0` |
 | `/product/:id` | Product detail           | `productLoader` → DummyJSON `/products/:id`  |
-| `/bag`         | Cart                     | `bagLoader` → mock fixtures                  |
+| `/bag`         | Cart                     | Redux store (`bag.items`)                    |
 
 ---
 
@@ -120,7 +120,8 @@ Utility classes available in `@layer utilities`:
 
 ```
 ├── src/
-│   ├── main.jsx                 # Router, loaders, preview wrappers
+│   ├── main.jsx                 # React root render: Provider, ThemeProvider, AppRouter
+│   ├── router.jsx               # Router setup, loaders, route wrappers, RootErrorElement
 │   ├── App.jsx                  # App shell
 │   ├── index.css                # Tailwind v4 @theme (ALL design tokens)
 │   ├── theme.js                 # MUI theme (mirrors CSS tokens)
@@ -138,13 +139,12 @@ Utility classes available in `@layer utilities`:
 │   │   ├── CatalogPagination.jsx
 │   │   ├── Footer.jsx
 │   │   └── LoadingSpinner.jsx
-│   ├── data/
-│   │   └── mockItems.js         # Mock catalog + bag fixtures
 │   ├── utils/
 │   │   ├── filters.js           # Pure filter/sort/search helpers
 │   │   └── product.js           # Price formatting, dimensions
 │   └── store/
-│       └── Bag.jsx              # Redux slice stub (not wired)
+│       ├── Store.jsx            # Redux store configuration
+│       └── Bag.jsx              # Redux bag slice (cart state & actions)
 ├── design-system/atelier/
 │   ├── MASTER.md                # Global design rules
 │   └── pages/*.md               # Per-page overrides
