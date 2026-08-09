@@ -96,12 +96,19 @@ export const buildFacetsWithCounts = (
   const minPrice = prices.length ? Math.floor(Math.min(...prices)) : 0;
   const maxPrice = prices.length ? Math.ceil(Math.max(...prices)) : 0;
 
-  const visibleValues = (counts) =>
-    uniqueSorted(Object.keys(counts).filter((key) => counts[key] > 0));
+  const allCategories = uniqueSorted([
+    ...products.map((product) => product.category),
+    ...Object.keys(categoryCounts),
+  ]);
+
+  const allAvailability = uniqueSorted([
+    ...products.map((product) => product.availabilityStatus),
+    ...Object.keys(availabilityCounts),
+  ]);
 
   return {
-    categories: visibleValues(categoryCounts),
-    availability: visibleValues(availabilityCounts),
+    categories: allCategories,
+    availability: allAvailability,
     categoryCounts,
     availabilityCounts,
     ratingCounts,

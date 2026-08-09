@@ -20,6 +20,7 @@ Routes:
 | `/`            | Home (catalog + filters) |
 | `/product/:id` | Product detail           |
 | `/bag`         | Bag / cart               |
+| `/success`     | Order confirmation       |
 
 ---
 
@@ -33,6 +34,7 @@ Routes:
 | Theme   | MUI `ThemeProvider` via `src/theme.js` + Atelier design tokens                   |
 | State   | Redux Toolkit (`@reduxjs/toolkit` + `react-redux`) for cart state (`src/store/`) |
 | Data    | DummyJSON catalog API for Home & Product details                                 |
+| Payment | Stripe Checkout API via Express backend (`server.js`) & Stripe Sandbox           |
 
 **Do not** introduce Bootstrap or the legacy `BrowserRouter` + `<Routes>` tree.
 
@@ -41,17 +43,18 @@ Routes:
 ## Architecture
 
 ```text
+server.js         # Node/Express backend for Stripe Checkout Session API (port 4000)
 src/
-  main.jsx          # App bootstrap: Redux Provider, MUI ThemeProvider, AppRouter
-  router.jsx        # Routes, loaders (homeLoader, productLoader), preview wrappers, RootErrorElement
-  App.jsx           # Shell: Header + <Outlet context> + Footer
-  pages/            # Presentational pages (Home, Product, Bag) — props in, UI out
-  components/       # Presentational UI pieces
-  utils/            # Pure helpers (filters, product formatting)
-  store/            # Redux store (`Store.jsx`) and bag slice (`Bag.jsx`)
+  main.jsx        # App bootstrap: Redux Provider, MUI ThemeProvider, AppRouter
+  router.jsx      # Routes, loaders, preview wrappers, RootErrorElement, Success route
+  App.jsx         # Shell: Header + <Outlet context> + Footer
+  pages/          # Presentational pages (Home, Product, Bag, Success) — props in, UI out
+  components/     # Presentational UI pieces
+  utils/          # Pure helpers (filters, product formatting)
+  store/          # Redux store (`Store.jsx`) and bag slice (`Bag.jsx`)
 design-system/atelier/
-  MASTER.md         # Global design rules
-  pages/*.md        # Per-page overrides (win over MASTER)
+  MASTER.md       # Global design rules
+  pages/*.md      # Per-page overrides (win over MASTER)
 ```
 
 **Data flow**
@@ -98,6 +101,7 @@ design-system/atelier/
 - **Redux store file:** `src/store/Bag.jsx` manages cart state via Redux Toolkit.
 - **Favicon / brand:** public Atelier “A” SVG; keep brand visible in header, not only in copy.
 - **Cart state:** Cart actions dispatch to the Redux store.
+- **Stripe Express server:** `server.js` handles `POST /api/create-checkout-session` and `GET /api/checkout-session/:sessionId` on port 4000 using sandbox keys configured in `.env`.
 
 ---
 

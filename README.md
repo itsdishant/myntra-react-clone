@@ -30,20 +30,22 @@ A Myntra-inspired fashion e-commerce clone rebuilt as an original brand with Ama
 | Theme   | MUI `ThemeProvider` via `src/theme.js` + Atelier design tokens                             |
 | State   | Redux Toolkit (`@reduxjs/toolkit` + `react-redux`) for cart state (`src/store/`)           |
 | Data    | DummyJSON catalog API for Home & Product details                                           |
+| Payment | Stripe Checkout API via Express backend (`server.js`) & Stripe Sandbox                     |
 
 ---
 
 ## Architecture
 
 ```text
+server.js         # Node/Express backend for Stripe Checkout Session API (port 4000)
 src/
-  main.jsx          # App bootstrap: Redux Provider, MUI ThemeProvider, AppRouter
-  router.jsx        # Routes, loaders (homeLoader, productLoader), preview wrappers, RootErrorElement
-  App.jsx           # Shell: Header + <Outlet context> + Footer
-  pages/            # Presentational pages (Home, Product, Bag) — props in, UI out
-  components/       # Presentational UI pieces
-  utils/            # Pure helpers (filters, product formatting)
-  store/            # Redux store (`Store.jsx`) and bag slice (`Bag.jsx`)
+  main.jsx        # App bootstrap: Redux Provider, MUI ThemeProvider, AppRouter
+  router.jsx      # Routes, loaders, preview wrappers, RootErrorElement, Success route
+  App.jsx         # Shell: Header + <Outlet context> + Footer
+  pages/          # Presentational pages (Home, Product, Bag, Success) — props in, UI out
+  components/     # Presentational UI pieces
+  utils/          # Pure helpers (filters, product formatting)
+  store/          # Redux store (`Store.jsx`) and bag slice (`Bag.jsx`)
 ```
 
 ### Data Flow
@@ -59,7 +61,8 @@ src/
 ## Commands
 
 ```bash
-npm run dev       # Start dev server
+npm run dev       # Start Vite dev server (port 5173)
+node server.js    # Start Express backend server for Stripe Checkout (port 4000)
 npm run build     # Production build
 npm run lint      # Run ESLint
 npm run format    # Format all files with Prettier
@@ -113,12 +116,16 @@ Utility classes available in `@layer utilities`:
 | `/`            | Home (catalog + filters) | `homeLoader` → DummyJSON `/products?limit=0` |
 | `/product/:id` | Product detail           | `productLoader` → DummyJSON `/products/:id`  |
 | `/bag`         | Cart                     | Redux store (`bag.items`)                    |
+| `/success`     | Order confirmation       | Stripe Checkout Session verification API     |
 
 ---
 
 ## Project Structure (Key Files)
 
 ```text
+├── server.js                    # Express server for Stripe Checkout APIs
+├── .env.example                 # Tracked template for required env keys (STRIPE_SECRET_KEY, PORT, FRONTEND_URL, VITE_API_BASE_URL)
+│                                # Verify template tracking with: git check-ignore -v .env.example
 ├── src/
 │   ├── main.jsx                 # React root render: Provider, ThemeProvider, AppRouter
 │   ├── router.jsx               # Router setup, loaders, route wrappers, RootErrorElement
@@ -128,7 +135,8 @@ Utility classes available in `@layer utilities`:
 │   ├── pages/
 │   │   ├── Home.jsx             # Catalog page (presentational)
 │   │   ├── Product.jsx          # PDP (presentational)
-│   │   └── Bag.jsx              # Cart page (presentational)
+│   │   ├── Bag.jsx              # Cart page (presentational)
+│   │   └── Success.jsx          # Order confirmation page (Stripe post-checkout)
 │   ├── components/
 │   │   ├── Header.jsx           # Sticky header with search + cart
 │   │   ├── HomeItem.jsx         # Product card

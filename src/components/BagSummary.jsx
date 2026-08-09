@@ -14,6 +14,7 @@ const BagSummary = ({
   totalDiscount = 0,
   convenienceFee = 0,
   finalPayment = 0,
+  isPlacingOrder = false,
   onPlaceOrder,
   onClearCart,
 }) => {
@@ -70,10 +71,10 @@ const BagSummary = ({
           variant="contained"
           color="primary"
           onClick={onPlaceOrder}
-          disabled={totalItem === 0}
+          disabled={totalItem === 0 || isPlacingOrder}
           className="min-h-12! text-sm font-semibold!"
         >
-          Place order
+          {isPlacingOrder ? "Redirecting to Stripe…" : "Place order"}
         </Button>
         {totalItem > 0 ? (
           <Button

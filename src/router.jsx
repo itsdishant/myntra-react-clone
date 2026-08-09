@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   createBrowserRouter,
   isRouteErrorResponse,
   RouterProvider,
   useLoaderData,
   useNavigate,
+  useNavigation,
   useOutletContext,
   useRevalidator,
   useRouteError,
@@ -19,6 +20,7 @@ import App from "./App.jsx";
 import Home from "./pages/Home.jsx";
 import Bag from "./pages/Bag.jsx";
 import Product from "./pages/Product.jsx";
+import Success from "./pages/Success.jsx";
 import { bagActions } from "./store/Bag.jsx";
 import {
   DEFAULT_FILTERS,
@@ -30,6 +32,9 @@ import {
   getActiveFilterChips,
   removeFilterChip,
 } from "./utils/filters.js";
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
 
 async function homeLoader() {
   const response = await fetch("https://dummyjson.com/products?limit=0");
@@ -117,6 +122,9 @@ function HomePreview() {
   const bagItems = useSelector((state) => state.bag.items);
   const { searchQuery = "", onClearSearch } = useOutletContext() ?? {};
 
+  const navigation = useNavigation();
+  const [isPending, startTransition] = useTransition();
+
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [sort, setSort] = useState("featured");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -124,27 +132,35 @@ function HomePreview() {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   const handleFiltersChange = (nextFilters) => {
-    setFilters(nextFilters);
-    setPage(1);
+    startTransition(() => {
+      setFilters(nextFilters);
+      setPage(1);
+    });
   };
 
   const handleSortChange = (nextSort) => {
-    setSort(nextSort);
-    setPage(1);
+    startTransition(() => {
+      setSort(nextSort);
+      setPage(1);
+    });
   };
 
   const handlePageSizeChange = (nextPageSize) => {
-    setPageSize(nextPageSize);
-    setPage(1);
+    startTransition(() => {
+      setPageSize(nextPageSize);
+      setPage(1);
+    });
   };
 
   const handleRemoveChip = (chip) => {
-    setPage(1);
-    if (chip.group === "search") {
-      onClearSearch?.();
-      return;
-    }
-    setFilters((current) => removeFilterChip(current, chip));
+    startTransition(() => {
+      setPage(1);
+      if (chip.group === "search") {
+        onClearSearch?.();
+        return;
+      }
+      setFilters((current) => removeFilterChip(current, chip));
+    });
   };
 
   const searchedItems = useMemo(
@@ -187,16 +203,20 @@ function HomePreview() {
   }, [filters, searchQuery]);
 
   const handlePageChange = (nextPage) => {
-    setPage(nextPage);
-    document
-      .getElementById("main-content")
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    startTransition(() => {
+      setPage(nextPage);
+      document
+        .getElementById("main-content")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   };
 
   const handleClearFilters = () => {
-    setFilters(DEFAULT_FILTERS);
-    onClearSearch?.();
-    setPage(1);
+    startTransition(() => {
+      setFilters(DEFAULT_FILTERS);
+      onClearSearch?.();
+      setPage(1);
+    });
   };
 
   const handleAddToBag = (item, quantity = 1) => {
@@ -206,6 +226,8 @@ function HomePreview() {
   const handleRemoveFromBag = (itemId) => {
     dispatch(bagActions.removeFromBag(itemId));
   };
+
+  const isLoading = isPending || navigation.state === "loading";
 
   return (
     <Home
@@ -221,6 +243,7 @@ function HomePreview() {
       sort={sort}
       chips={chips}
       filtersOpen={filtersOpen}
+      isLoading={isLoading}
       onFiltersChange={handleFiltersChange}
       onSortChange={handleSortChange}
       onPageChange={handlePageChange}
@@ -238,7 +261,8 @@ function HomePreview() {
 function BagPreview() {
   const dispatch = useDispatch();
   const bagItems = useSelector((state) => state.bag.items);
-  const [toastMessage, setToastMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   const handleRemove = (itemId) => {
     dispatch(bagActions.removeFromBag(itemId));
@@ -252,39 +276,141 @@ function BagPreview() {
     dispatch(bagActions.clearBag());
   };
 
-  const handlePlaceOrder = () => {
-    dispatch(bagActions.clearBag());
-    setToastMessage(
-      "Thank you for your order! Your purchase has been placed successfully.",
-    );
+  const handlePlaceOrder = async () => {
+    if (!bagItems.length) return;
+    setIsPlacingOrder(true);
+    setErrorMessage("");
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/create-checkout-session`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            items: bagItems.map((item) => ({
+              id: item.id,
+              quantity: item.quantity || 1,
+            })),
+          }),
+          signal: controller.signal,
+        },
+      );
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error || "Failed to create Stripe checkout session.",
+        );
+      }
+
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("Stripe checkout URL missing from response.");
+      }
+    } catch (err) {
+      clearTimeout(timeoutId);
+      console.error("Stripe Checkout Error:", err);
+      if (err.name === "AbortError") {
+        setErrorMessage("Checkout request timed out. Please try again.");
+      } else {
+        setErrorMessage(
+          err.message ||
+            "Failed to initiate payment. Please make sure the server is running.",
+        );
+      }
+      setIsPlacingOrder(false);
+    }
   };
 
   return (
     <>
       <Bag
         items={bagItems}
+        isPlacingOrder={isPlacingOrder}
         onRemove={handleRemove}
         onUpdateQuantity={handleUpdateQuantity}
         onClearCart={handleClearCart}
         onPlaceOrder={handlePlaceOrder}
       />
       <Snackbar
-        open={Boolean(toastMessage)}
-        autoHideDuration={4000}
-        onClose={() => setToastMessage("")}
+        open={Boolean(errorMessage)}
+        autoHideDuration={5000}
+        onClose={() => setErrorMessage("")}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert
-          onClose={() => setToastMessage("")}
-          severity="success"
+          onClose={() => setErrorMessage("")}
+          severity="error"
           variant="filled"
           sx={{ width: "100%" }}
         >
-          {toastMessage}
+          {errorMessage}
         </Alert>
       </Snackbar>
     </>
   );
+}
+
+async function successLoader({ request }) {
+  const url = new URL(request.url);
+  const sessionId = url.searchParams.get("session_id");
+
+  if (!sessionId) {
+    return { sessionId: null, session: null };
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/checkout-session/${sessionId}`,
+      { signal: controller.signal },
+    );
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Response("Order confirmation session not found.", {
+        status: response.status || 404,
+        statusText: "Not Found",
+      });
+    }
+
+    const data = await response.json();
+    return { sessionId, session: data };
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Response) {
+      throw error;
+    }
+    if (error?.name === "AbortError") {
+      return { sessionId, session: null, timeout: true };
+    }
+    throw error;
+  }
+}
+
+function SuccessPreview() {
+  const dispatch = useDispatch();
+  const { sessionId, session } = useLoaderData();
+
+  useEffect(() => {
+    if (session?.paymentStatus === "paid") {
+      dispatch(bagActions.clearBag());
+    }
+  }, [session, dispatch]);
+
+  return <Success sessionId={sessionId} session={session} />;
 }
 
 /**
@@ -378,6 +504,11 @@ const router = createBrowserRouter([
       {
         path: "bag",
         element: <BagPreview />,
+      },
+      {
+        path: "success",
+        element: <SuccessPreview />,
+        loader: successLoader,
       },
     ],
   },
