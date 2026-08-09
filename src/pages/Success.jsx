@@ -1,58 +1,49 @@
-import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { Link } from "react-router-dom";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
-import CircularProgress from "@mui/material/CircularProgress";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import Divider from "@mui/material/Divider";
-import { bagActions } from "../store/Bag";
 import { formatMoney } from "../utils/product";
 
-const Success = () => {
-  const [searchParams] = useSearchParams();
-  const sessionId = searchParams.get("session_id");
-  const dispatch = useDispatch();
-
-  const [loading, setLoading] = useState(Boolean(sessionId));
-  const [sessionDetails, setSessionDetails] = useState(null);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    // Clear Redux cart once payment is successful
-    dispatch(bagActions.clearBag());
-
-    if (!sessionId) return;
-
-    const fetchSession = async () => {
-      try {
-        const response = await fetch(
-          `http://localhost:4000/api/checkout-session/${sessionId}`,
-        );
-        if (!response.ok) {
-          throw new Error("Failed to fetch session details.");
-        }
-        const data = await response.json();
-        setSessionDetails(data);
-      } catch (err) {
-        console.error("Error fetching session details:", err);
-        setError(err.message || "Failed to load order confirmation details.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSession();
-  }, [sessionId, dispatch]);
-
-  if (loading) {
+/**
+ * Presentational order confirmation page.
+ * Receives session details from route wrapper / loader.
+ */
+const Success = ({ sessionId, session }) => {
+  if (!sessionId || !session) {
     return (
-      <Box className="flex min-h-[60vh] flex-col items-center justify-center p-6 text-center">
-        <CircularProgress size={48} thickness={3} color="primary" />
-        <Typography className="mt-4 text-base font-medium text-(--color-foreground-muted)">
-          Confirming your purchase with Stripe…
-        </Typography>
+      <Box
+        component="main"
+        id="main-content"
+        className="mx-auto w-full max-w-shell px-4 py-12 sm:px-6 sm:py-16"
+      >
+        <Box className="mx-auto max-w-md rounded-2xl border border-(--color-border) bg-surface p-6 text-center shadow-soft sm:p-8">
+          <Box className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-(--color-primary-soft) text-(--color-primary) mx-auto">
+            <InfoOutlinedIcon sx={{ fontSize: 36 }} />
+          </Box>
+          <Typography
+            variant="h5"
+            className="mb-2 font-semibold text-(--color-foreground)"
+            sx={{ fontFamily: '"Cormorant", Georgia, serif' }}
+          >
+            No order session found
+          </Typography>
+          <Typography className="mb-6 text-sm text-(--color-foreground-muted)">
+            We couldn’t find an active order session ID. If you just placed an
+            order, please check your email for a receipt.
+          </Typography>
+          <Button
+            component={Link}
+            to="/"
+            variant="contained"
+            color="primary"
+            className="min-h-11! px-6! font-semibold!"
+          >
+            Return to Store
+          </Button>
+        </Box>
       </Box>
     );
   }
@@ -80,36 +71,27 @@ const Success = () => {
           </Typography>
         </Box>
 
-        {sessionId ? (
-          <Box className="mb-6 rounded-xl border border-(--color-border) bg-(--color-background) p-4 text-xs">
-            <Typography className="font-semibold text-(--color-foreground)">
-              Order ID: <span className="font-normal">{sessionId}</span>
-            </Typography>
-            {sessionDetails?.customerEmail ? (
-              <Typography className="mt-1 font-semibold text-(--color-foreground)">
-                Receipt sent to:{" "}
-                <span className="font-normal">
-                  {sessionDetails.customerEmail}
-                </span>
-              </Typography>
-            ) : null}
-          </Box>
-        ) : null}
-
-        {error ? (
-          <Typography className="mb-4 text-sm text-(--color-accent)">
-            {error}
+        <Box className="mb-6 rounded-xl border border-(--color-border) bg-(--color-background) p-4 text-xs">
+          <Typography className="font-semibold text-(--color-foreground)">
+            Order ID:{" "}
+            <span className="font-normal">{session.id || sessionId}</span>
           </Typography>
-        ) : null}
+          {session.customerEmail ? (
+            <Typography className="mt-1 font-semibold text-(--color-foreground)">
+              Receipt sent to:{" "}
+              <span className="font-normal">{session.customerEmail}</span>
+            </Typography>
+          ) : null}
+        </Box>
 
-        {sessionDetails?.lineItems?.length ? (
+        {session.lineItems?.length ? (
           <Box className="mb-6">
             <Typography className="mb-3 text-xs font-bold tracking-[0.12em] text-(--color-foreground) uppercase">
               Order Summary
             </Typography>
             <Divider className="mb-3! border-(--color-border)!" />
             <Box className="flex flex-col gap-3">
-              {sessionDetails.lineItems.map((item, idx) => (
+              {session.lineItems.map((item, idx) => (
                 <Box
                   key={idx}
                   className="flex items-center justify-between text-sm"
@@ -131,7 +113,7 @@ const Success = () => {
             <Divider className="my-4! border-(--color-border)!" />
             <Box className="flex items-center justify-between text-base font-bold text-(--color-foreground)">
               <span>Total Paid</span>
-              <span>{formatMoney(sessionDetails.amountTotal)}</span>
+              <span>{formatMoney(session.amountTotal)}</span>
             </Box>
           </Box>
         ) : null}

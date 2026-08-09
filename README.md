@@ -124,7 +124,8 @@ Utility classes available in `@layer utilities`:
 
 ```text
 ├── server.js                    # Express server for Stripe Checkout APIs
-├── .env.example                 # Template for Stripe Sandbox API keys
+├── .env.example                 # Tracked template for required env keys (STRIPE_SECRET_KEY, PORT, FRONTEND_URL, VITE_API_BASE_URL)
+│                                # Verify template tracking with: git check-ignore -v .env.example
 ├── src/
 │   ├── main.jsx                 # React root render: Provider, ThemeProvider, AppRouter
 │   ├── router.jsx               # Router setup, loaders, route wrappers, RootErrorElement

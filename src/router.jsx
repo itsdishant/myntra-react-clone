@@ -1,4 +1,4 @@
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   createBrowserRouter,
   isRouteErrorResponse,
@@ -32,6 +32,9 @@ import {
   getActiveFilterChips,
   removeFilterChip,
 } from "./utils/filters.js";
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
 
 async function homeLoader() {
   const response = await fetch("https://dummyjson.com/products?limit=0");
@@ -258,7 +261,6 @@ function HomePreview() {
 function BagPreview() {
   const dispatch = useDispatch();
   const bagItems = useSelector((state) => state.bag.items);
-  const [toastMessage, setToastMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
@@ -279,26 +281,28 @@ function BagPreview() {
     setIsPlacingOrder(true);
     setErrorMessage("");
 
-    const totalDiscountedPrice = bagItems.reduce(
-      (sum, item) => sum + (item.price ?? 0) * (item.quantity || 1),
-      0,
-    );
-    const convenienceFee = totalDiscountedPrice > 50 ? 0 : 5;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     try {
       const response = await fetch(
-        "http://localhost:4000/api/create-checkout-session",
+        `${API_BASE_URL}/api/create-checkout-session`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            items: bagItems,
-            convenienceFee,
+            items: bagItems.map((item) => ({
+              id: item.id,
+              quantity: item.quantity || 1,
+            })),
           }),
+          signal: controller.signal,
         },
       );
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -314,11 +318,16 @@ function BagPreview() {
         throw new Error("Stripe checkout URL missing from response.");
       }
     } catch (err) {
+      clearTimeout(timeoutId);
       console.error("Stripe Checkout Error:", err);
-      setErrorMessage(
-        err.message ||
-          "Failed to initiate payment. Please make sure the server is running.",
-      );
+      if (err.name === "AbortError") {
+        setErrorMessage("Checkout request timed out. Please try again.");
+      } else {
+        setErrorMessage(
+          err.message ||
+            "Failed to initiate payment. Please make sure the server is running.",
+        );
+      }
       setIsPlacingOrder(false);
     }
   };
@@ -334,28 +343,57 @@ function BagPreview() {
         onPlaceOrder={handlePlaceOrder}
       />
       <Snackbar
-        open={Boolean(errorMessage || toastMessage)}
+        open={Boolean(errorMessage)}
         autoHideDuration={5000}
-        onClose={() => {
-          setToastMessage("");
-          setErrorMessage("");
-        }}
+        onClose={() => setErrorMessage("")}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert
-          onClose={() => {
-            setToastMessage("");
-            setErrorMessage("");
-          }}
-          severity={errorMessage ? "error" : "success"}
+          onClose={() => setErrorMessage("")}
+          severity="error"
           variant="filled"
           sx={{ width: "100%" }}
         >
-          {errorMessage || toastMessage}
+          {errorMessage}
         </Alert>
       </Snackbar>
     </>
   );
+}
+
+async function successLoader({ request }) {
+  const url = new URL(request.url);
+  const sessionId = url.searchParams.get("session_id");
+
+  if (!sessionId) {
+    return { sessionId: null, session: null };
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/checkout-session/${sessionId}`,
+  );
+  if (!response.ok) {
+    throw new Response("Order confirmation session not found.", {
+      status: response.status || 404,
+      statusText: "Not Found",
+    });
+  }
+
+  const data = await response.json();
+  return { sessionId, session: data };
+}
+
+function SuccessPreview() {
+  const dispatch = useDispatch();
+  const { sessionId, session } = useLoaderData();
+
+  useEffect(() => {
+    if (session?.paymentStatus === "paid") {
+      dispatch(bagActions.clearBag());
+    }
+  }, [session, dispatch]);
+
+  return <Success sessionId={sessionId} session={session} />;
 }
 
 /**
@@ -452,7 +490,8 @@ const router = createBrowserRouter([
       },
       {
         path: "success",
-        element: <Success />,
+        element: <SuccessPreview />,
+        loader: successLoader,
       },
     ],
   },

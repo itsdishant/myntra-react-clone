@@ -80,7 +80,9 @@ const FilterSidebar = ({
                   <Checkbox
                     size="small"
                     checked={filters.categories.includes(category)}
-                    disabled={count === 0}
+                    disabled={
+                      count === 0 && !filters.categories.includes(category)
+                    }
                     onChange={() => toggle("categories", category)}
                   />
                 }
@@ -178,7 +180,9 @@ const FilterSidebar = ({
                   <Checkbox
                     size="small"
                     checked={filters.availability.includes(status)}
-                    disabled={count === 0}
+                    disabled={
+                      count === 0 && !filters.availability.includes(status)
+                    }
                     onChange={() => toggle("availability", status)}
                   />
                 }
