@@ -1,5 +1,9 @@
 /** Presentational helpers for DummyJSON product fields. */
 
+export const isOutOfStock = (product) =>
+  product?.stock === 0 ||
+  /out of stock/i.test(product?.availabilityStatus ?? "");
+
 export const getDiscountedPrice = (product) => product?.price ?? 0;
 
 export const getOriginalPrice = (product) => {

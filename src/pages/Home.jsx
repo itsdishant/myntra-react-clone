@@ -86,7 +86,7 @@ const Home = ({
                       item={item}
                       inBag={bagItemIds.includes(item.id)}
                       onAddToBag={
-                        onAddToBag ? () => onAddToBag(item.id) : undefined
+                        onAddToBag ? () => onAddToBag(item, 1) : undefined
                       }
                       onRemoveFromBag={
                         onRemoveFromBag

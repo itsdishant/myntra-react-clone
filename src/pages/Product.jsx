@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
 import Rating from "@mui/material/Rating";
 import Chip from "@mui/material/Chip";
 import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
@@ -11,12 +13,15 @@ import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined
 import VerifiedOutlinedIcon from "@mui/icons-material/VerifiedOutlined";
 import ReplayOutlinedIcon from "@mui/icons-material/ReplayOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
+import RemoveOutlinedIcon from "@mui/icons-material/RemoveOutlined";
 import {
   formatDate,
   formatDimensions,
   formatMoney,
   getDiscountedPrice,
   getOriginalPrice,
+  isOutOfStock,
 } from "../utils/product";
 
 /**
@@ -30,6 +35,9 @@ const Product = ({
   onAddToBag,
   onRemoveFromBag,
 }) => {
+  const minQuantity = item?.minimumOrderQuantity ?? 1;
+  const [quantity, setQuantity] = useState(minQuantity);
+
   if (!item) {
     return (
       <Box
@@ -66,6 +74,7 @@ const Product = ({
   const original = getOriginalPrice(item);
   const hasDiscount = (item.discountPercentage ?? 0) > 0;
   const isLowStock = item.availabilityStatus === "Low Stock";
+  const outOfStock = isOutOfStock(item);
   const dimensionsLabel = formatDimensions(item.dimensions);
 
   const specificationRows = [
@@ -299,6 +308,45 @@ const Product = ({
               />
             </Box>
 
+            {!inBag && !outOfStock ? (
+              <Box className="mb-4 flex items-center gap-3">
+                <Typography className="text-sm font-semibold text-(--color-foreground)">
+                  Quantity:
+                </Typography>
+                <Box className="flex items-center rounded-lg border border-(--color-border) bg-surface">
+                  <IconButton
+                    size="small"
+                    disabled={quantity <= minQuantity}
+                    onClick={() =>
+                      setQuantity((q) => Math.max(minQuantity, q - 1))
+                    }
+                    aria-label="Decrease quantity"
+                    className="p-1.5!"
+                  >
+                    <RemoveOutlinedIcon fontSize="small" />
+                  </IconButton>
+                  <Typography className="w-10 text-center text-sm font-semibold">
+                    {quantity}
+                  </Typography>
+                  <IconButton
+                    size="small"
+                    disabled={item.stock != null && quantity >= item.stock}
+                    onClick={() =>
+                      setQuantity((q) =>
+                        item.stock != null
+                          ? Math.min(item.stock, q + 1)
+                          : q + 1,
+                      )
+                    }
+                    aria-label="Increase quantity"
+                    className="p-1.5!"
+                  >
+                    <AddOutlinedIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              </Box>
+            ) : null}
+
             {inBag ? (
               <Button
                 fullWidth
@@ -306,10 +354,21 @@ const Product = ({
                 color="error"
                 size="large"
                 startIcon={<DeleteOutlinedIcon />}
-                onClick={onRemoveFromBag}
+                onClick={() => onRemoveFromBag?.(item.id)}
                 className="min-h-12! font-bold!"
               >
                 Remove from cart
+              </Button>
+            ) : outOfStock ? (
+              <Button
+                fullWidth
+                variant="contained"
+                color="primary"
+                size="large"
+                disabled
+                className="min-h-12! font-bold!"
+              >
+                Out of stock
               </Button>
             ) : (
               <Button
@@ -318,7 +377,7 @@ const Product = ({
                 color="primary"
                 size="large"
                 startIcon={<AddCircleOutlineOutlinedIcon />}
-                onClick={onAddToBag}
+                onClick={() => onAddToBag?.(item, quantity)}
                 className="min-h-12! font-bold!"
               >
                 Add to cart

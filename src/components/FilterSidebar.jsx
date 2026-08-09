@@ -43,12 +43,10 @@ const FilterSidebar = ({
     );
 
   const categoryOptions = withSelected(facets.categories, filters.categories);
-  const brandOptions = withSelected(facets.brands, filters.brands);
   const availabilityOptions = withSelected(
     facets.availability,
     filters.availability,
   );
-  const tagOptions = withSelected(facets.tags, filters.tags);
 
   return (
     <Box
@@ -87,28 +85,6 @@ const FilterSidebar = ({
                   />
                 }
                 label={<FilterLabel name={category} count={count} capitalize />}
-              />
-            );
-          })}
-        </FormGroup>
-      </FilterSection>
-
-      <FilterSection title="Brand">
-        <FormGroup>
-          {brandOptions.map((brand) => {
-            const count = facets.brandCounts?.[brand] ?? 0;
-            return (
-              <FormControlLabel
-                key={brand}
-                control={
-                  <Checkbox
-                    size="small"
-                    checked={filters.brands.includes(brand)}
-                    disabled={count === 0}
-                    onChange={() => toggle("brands", brand)}
-                  />
-                }
-                label={<FilterLabel name={brand} count={count} />}
               />
             );
           })}
@@ -191,7 +167,7 @@ const FilterSidebar = ({
         </FormGroup>
       </FilterSection>
 
-      <FilterSection title="Availability">
+      <FilterSection title="Availability" last>
         <FormGroup>
           {availabilityOptions.map((status) => {
             const count = facets.availabilityCounts?.[status] ?? 0;
@@ -207,28 +183,6 @@ const FilterSidebar = ({
                   />
                 }
                 label={<FilterLabel name={status} count={count} />}
-              />
-            );
-          })}
-        </FormGroup>
-      </FilterSection>
-
-      <FilterSection title="Tags" last>
-        <FormGroup>
-          {tagOptions.map((tag) => {
-            const count = facets.tagCounts?.[tag] ?? 0;
-            return (
-              <FormControlLabel
-                key={tag}
-                control={
-                  <Checkbox
-                    size="small"
-                    checked={filters.tags.includes(tag)}
-                    disabled={count === 0}
-                    onChange={() => toggle("tags", tag)}
-                  />
-                }
-                label={<FilterLabel name={tag} count={count} capitalize />}
               />
             );
           })}
