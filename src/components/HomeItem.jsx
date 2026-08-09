@@ -13,6 +13,7 @@ import {
   formatMoney,
   getDiscountedPrice,
   getOriginalPrice,
+  isOutOfStock,
 } from "../utils/product";
 
 /**
@@ -31,6 +32,7 @@ const HomeItem = ({ item, inBag = false, onAddToBag, onRemoveFromBag }) => {
   const discounted = getDiscountedPrice(item);
   const original = getOriginalPrice(item);
   const hasDiscount = (item.discountPercentage ?? 0) > 0;
+  const outOfStock = isOutOfStock(item);
 
   return (
     <Card
@@ -48,7 +50,13 @@ const HomeItem = ({ item, inBag = false, onAddToBag, onRemoveFromBag }) => {
           loading="lazy"
           className="aspect-square w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.02]"
         />
-        {item.availabilityStatus === "Low Stock" ? (
+        {outOfStock ? (
+          <Chip
+            label="Out of stock"
+            size="small"
+            className="absolute! top-2.5! left-2.5! bg-(--color-neutral-200)! text-(--color-foreground-muted)! text-[11px]! font-medium!"
+          />
+        ) : item.availabilityStatus === "Low Stock" ? (
           <Chip
             label="Low stock"
             size="small"
@@ -130,6 +138,16 @@ const HomeItem = ({ item, inBag = false, onAddToBag, onRemoveFromBag }) => {
             className="mt-2! min-h-10!"
           >
             Remove
+          </Button>
+        ) : outOfStock ? (
+          <Button
+            fullWidth
+            variant="outlined"
+            size="small"
+            disabled
+            className="mt-2! min-h-10!"
+          >
+            Out of stock
           </Button>
         ) : (
           <Button

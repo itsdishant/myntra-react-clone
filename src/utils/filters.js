@@ -2,12 +2,10 @@ import { getDiscountedPrice } from "./product";
 
 export const DEFAULT_FILTERS = {
   categories: [],
-  brands: [],
   minPrice: null,
   maxPrice: null,
   minRating: null,
   availability: [],
-  tags: [],
 };
 
 export const SORT_OPTIONS = [
@@ -41,8 +39,6 @@ export const buildFacets = (products = []) => {
 
   return {
     categories: uniqueSorted(products.map((product) => product.category)),
-    brands: uniqueSorted(products.map((product) => product.brand)),
-    tags: uniqueSorted(products.flatMap((product) => product.tags ?? [])),
     availability: uniqueSorted(
       products.map((product) => product.availabilityStatus),
     ),
@@ -71,12 +67,10 @@ export const buildFacetsWithCounts = (
   filters = DEFAULT_FILTERS,
 ) => {
   const categoryPool = filterProducts(products, { ...filters, categories: [] });
-  const brandPool = filterProducts(products, { ...filters, brands: [] });
   const availabilityPool = filterProducts(products, {
     ...filters,
     availability: [],
   });
-  const tagPool = filterProducts(products, { ...filters, tags: [] });
   const ratingPool = filterProducts(products, { ...filters, minRating: null });
   const pricePool = filterProducts(products, {
     ...filters,
@@ -87,11 +81,9 @@ export const buildFacetsWithCounts = (
   const categoryCounts = countValues(categoryPool, (product) => [
     product.category,
   ]);
-  const brandCounts = countValues(brandPool, (product) => [product.brand]);
   const availabilityCounts = countValues(availabilityPool, (product) => [
     product.availabilityStatus,
   ]);
-  const tagCounts = countValues(tagPool, (product) => product.tags ?? []);
 
   const ratingCounts = {};
   RATING_OPTIONS.forEach((stars) => {
@@ -109,12 +101,8 @@ export const buildFacetsWithCounts = (
 
   return {
     categories: visibleValues(categoryCounts),
-    brands: visibleValues(brandCounts),
-    tags: visibleValues(tagCounts),
     availability: visibleValues(availabilityCounts),
     categoryCounts,
-    brandCounts,
-    tagCounts,
     availabilityCounts,
     ratingCounts,
     minPrice,
@@ -126,13 +114,9 @@ export const buildFacetsWithCounts = (
 export const filterProducts = (products = [], filters = DEFAULT_FILTERS) => {
   return products.filter((product) => {
     if (
-      filters.categories.length &&
+      filters.categories?.length &&
       !filters.categories.includes(product.category)
     ) {
-      return false;
-    }
-
-    if (filters.brands.length && !filters.brands.includes(product.brand)) {
       return false;
     }
 
@@ -148,16 +132,10 @@ export const filterProducts = (products = [], filters = DEFAULT_FILTERS) => {
     }
 
     if (
-      filters.availability.length &&
+      filters.availability?.length &&
       !filters.availability.includes(product.availabilityStatus)
     ) {
       return false;
-    }
-
-    if (filters.tags.length) {
-      const productTags = product.tags ?? [];
-      const matchesTag = filters.tags.some((tag) => productTags.includes(tag));
-      if (!matchesTag) return false;
     }
 
     return true;
@@ -204,7 +182,7 @@ export const sortProducts = (products = [], sort = "featured") => {
 export const getActiveFilterChips = (filters = DEFAULT_FILTERS) => {
   const chips = [];
 
-  filters.categories.forEach((value) => {
+  filters.categories?.forEach((value) => {
     chips.push({
       id: `category:${value}`,
       group: "categories",
@@ -213,28 +191,10 @@ export const getActiveFilterChips = (filters = DEFAULT_FILTERS) => {
     });
   });
 
-  filters.brands.forEach((value) => {
-    chips.push({
-      id: `brand:${value}`,
-      group: "brands",
-      value,
-      label: value,
-    });
-  });
-
-  filters.availability.forEach((value) => {
+  filters.availability?.forEach((value) => {
     chips.push({
       id: `availability:${value}`,
       group: "availability",
-      value,
-      label: value,
-    });
-  });
-
-  filters.tags.forEach((value) => {
-    chips.push({
-      id: `tag:${value}`,
-      group: "tags",
       value,
       label: value,
     });
@@ -266,22 +226,16 @@ export const getActiveFilterChips = (filters = DEFAULT_FILTERS) => {
 export const removeFilterChip = (filters, chip) => {
   const next = {
     ...filters,
-    categories: [...filters.categories],
-    brands: [...filters.brands],
-    availability: [...filters.availability],
-    tags: [...filters.tags],
+    categories: [...(filters.categories ?? [])],
+    availability: [...(filters.availability ?? [])],
   };
 
   if (chip.group === "categories") {
     next.categories = next.categories.filter((value) => value !== chip.value);
-  } else if (chip.group === "brands") {
-    next.brands = next.brands.filter((value) => value !== chip.value);
   } else if (chip.group === "availability") {
     next.availability = next.availability.filter(
       (value) => value !== chip.value,
     );
-  } else if (chip.group === "tags") {
-    next.tags = next.tags.filter((value) => value !== chip.value);
   } else if (chip.group === "minRating") {
     next.minRating = null;
   } else if (chip.group === "price") {
@@ -293,10 +247,10 @@ export const removeFilterChip = (filters, chip) => {
 };
 
 export const hasActiveFilters = (filters = DEFAULT_FILTERS) =>
-  filters.categories.length > 0 ||
-  filters.brands.length > 0 ||
-  filters.availability.length > 0 ||
-  filters.tags.length > 0 ||
-  filters.minRating != null ||
-  filters.minPrice != null ||
-  filters.maxPrice != null;
+  Boolean(
+    filters.categories?.length ||
+    filters.availability?.length ||
+    filters.minRating != null ||
+    filters.minPrice != null ||
+    filters.maxPrice != null,
+  );
