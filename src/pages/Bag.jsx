@@ -7,6 +7,9 @@ import BagItem from "../components/BagItem";
 import BagSummary from "../components/BagSummary";
 import { getDiscountedPrice, getOriginalPrice } from "../utils/product";
 
+const FREE_DELIVERY_THRESHOLD = 50;
+const CONVENIENCE_FEE = 5;
+
 /**
  * Cart page layout.
  * Calculates summary metrics dynamically from `items`.
@@ -31,7 +34,9 @@ const Bag = ({
 
   const totalDiscount = Math.max(0, totalMRP - totalDiscountedPrice);
   const convenienceFee =
-    totalDiscountedPrice > 50 || items.length === 0 ? 0 : 5;
+    totalDiscountedPrice > FREE_DELIVERY_THRESHOLD || items.length === 0
+      ? 0
+      : CONVENIENCE_FEE;
   const finalPayment = totalDiscountedPrice + convenienceFee;
 
   return (

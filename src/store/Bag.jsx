@@ -11,6 +11,7 @@ const bagSlice = createSlice({
     addToBag: (state, action) => {
       const { item, quantity = 1 } = action.payload || {};
       if (!item || !item.id) return;
+      if (typeof quantity !== "number" || !Number.isFinite(quantity)) return;
 
       const existingIndex = state.items.findIndex(
         (existingItem) => existingItem.id === item.id,
@@ -33,6 +34,7 @@ const bagSlice = createSlice({
     updateQuantity: (state, action) => {
       const { id, quantity } = action.payload || {};
       if (!id) return;
+      if (typeof quantity !== "number" || !Number.isFinite(quantity)) return;
 
       if (quantity <= 0) {
         state.items = state.items.filter((item) => item.id !== id);

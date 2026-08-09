@@ -1,14 +1,19 @@
 import { useMemo, useState } from "react";
 import {
   createBrowserRouter,
+  isRouteErrorResponse,
   RouterProvider,
   useLoaderData,
   useNavigate,
   useOutletContext,
+  useRouteError,
 } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
 import App from "./App.jsx";
 import Home from "./pages/Home.jsx";
 import Bag from "./pages/Bag.jsx";
@@ -40,10 +45,14 @@ async function homeLoader() {
 async function productLoader({ params }) {
   const response = await fetch(`https://dummyjson.com/products/${params.id}`);
   if (!response.ok) {
-    throw new Response("Product not found", {
-      status: 404,
-      statusText: "Not Found",
-    });
+    const isNotFound = response.status === 404;
+    throw new Response(
+      isNotFound ? "Product not found" : "Failed to load product",
+      {
+        status: response.status,
+        statusText: isNotFound ? "Not Found" : response.statusText,
+      },
+    );
   }
   const item = await response.json();
   return { item };
@@ -315,10 +324,48 @@ function RootLayout() {
   );
 }
 
+function RootErrorElement() {
+  const error = useRouteError();
+  const navigate = useNavigate();
+
+  let title = "Something went wrong";
+  let message = "An unexpected error occurred while loading this page.";
+
+  if (isRouteErrorResponse(error)) {
+    title = `${error.status} ${error.statusText || "Error"}`.trim();
+    message =
+      typeof error.data === "string" ? error.data : error.statusText || message;
+  } else if (error instanceof Error) {
+    message = error.message;
+  }
+
+  return (
+    <Box className="flex min-h-[60vh] flex-col items-center justify-center p-6 text-center">
+      <Alert severity="error" sx={{ mb: 3, maxWidth: 480, width: "100%" }}>
+        <Typography variant="h6" className="font-semibold">
+          {title}
+        </Typography>
+        <Typography variant="body2" sx={{ mt: 0.5 }}>
+          {message}
+        </Typography>
+      </Alert>
+      <Box className="flex gap-3">
+        <Button variant="contained" onClick={() => navigate(0)}>
+          Try Again
+        </Button>
+        <Button variant="outlined" onClick={() => navigate("/")}>
+          Go to Home
+        </Button>
+      </Box>
+    </Box>
+  );
+}
+
 const router = createBrowserRouter([
   {
     path: "/",
     element: <RootLayout />,
+    errorElement: <RootErrorElement />,
     children: [
       { index: true, element: <HomePreview />, loader: homeLoader },
       {

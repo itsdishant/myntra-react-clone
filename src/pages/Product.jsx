@@ -35,7 +35,8 @@ const Product = ({
   onAddToBag,
   onRemoveFromBag,
 }) => {
-  const [quantity, setQuantity] = useState(1);
+  const minQuantity = item?.minimumOrderQuantity ?? 1;
+  const [quantity, setQuantity] = useState(minQuantity);
 
   if (!item) {
     return (
@@ -315,8 +316,10 @@ const Product = ({
                 <Box className="flex items-center rounded-lg border border-(--color-border) bg-surface">
                   <IconButton
                     size="small"
-                    disabled={quantity <= 1}
-                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    disabled={quantity <= minQuantity}
+                    onClick={() =>
+                      setQuantity((q) => Math.max(minQuantity, q - 1))
+                    }
                     aria-label="Decrease quantity"
                     className="p-1.5!"
                   >
@@ -328,7 +331,13 @@ const Product = ({
                   <IconButton
                     size="small"
                     disabled={item.stock != null && quantity >= item.stock}
-                    onClick={() => setQuantity((q) => q + 1)}
+                    onClick={() =>
+                      setQuantity((q) =>
+                        item.stock != null
+                          ? Math.min(item.stock, q + 1)
+                          : q + 1,
+                      )
+                    }
                     aria-label="Increase quantity"
                     className="p-1.5!"
                   >
