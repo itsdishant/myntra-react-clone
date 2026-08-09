@@ -85,6 +85,7 @@ app.post("/api/create-checkout-session", async (req, res) => {
       );
       clearTimeout(timeoutId);
     } catch (fetchError) {
+      controller.abort();
       clearTimeout(timeoutId);
       console.error("Upstream product fetch error:", fetchError);
       return res.status(502).json({
