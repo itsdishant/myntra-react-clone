@@ -49,8 +49,11 @@ app.post("/api/create-checkout-session", async (req, res) => {
     // Validate quantities and identifiers
     for (const item of items) {
       const qty = item?.quantity;
+      const idNum = Number(item?.id);
       if (
-        !item?.id ||
+        !Number.isInteger(idNum) ||
+        idNum <= 0 ||
+        !Number.isSafeInteger(idNum) ||
         typeof qty !== "number" ||
         !Number.isInteger(qty) ||
         qty <= 0
@@ -61,19 +64,33 @@ app.post("/api/create-checkout-session", async (req, res) => {
       }
     }
 
-    // Fetch authoritative product data from DummyJSON
-    const fetchedProducts = await Promise.all(
-      items.map(async (item) => {
-        const response = await fetch(
-          `https://dummyjson.com/products/${item.id}`,
-        );
-        if (!response.ok) {
-          throw new Error(`Product ${item.id} not found.`);
-        }
-        const product = await response.json();
-        return { product, quantity: item.quantity };
-      }),
-    );
+    // Fetch authoritative product data from DummyJSON with bounded timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    let fetchedProducts;
+    try {
+      fetchedProducts = await Promise.all(
+        items.map(async (item) => {
+          const response = await fetch(
+            `https://dummyjson.com/products/${item.id}`,
+            { signal: controller.signal },
+          );
+          if (!response.ok) {
+            throw new Error(`Product ${item.id} not found.`);
+          }
+          const product = await response.json();
+          return { product, quantity: item.quantity };
+        }),
+      );
+      clearTimeout(timeoutId);
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      console.error("Upstream product fetch error:", fetchError);
+      return res.status(502).json({
+        error: "Upstream product service unavailable. Please try again.",
+      });
+    }
 
     let totalDiscountedPrice = 0;
     const lineItems = fetchedProducts.map(({ product, quantity }) => {
@@ -148,7 +165,6 @@ app.get("/api/checkout-session/:sessionId", async (req, res) => {
     res.json({
       id: session.id,
       paymentStatus: session.payment_status,
-      customerEmail: session.customer_details?.email || null,
       amountTotal: session.amount_total ? session.amount_total / 100 : 0,
       currency: session.currency,
       lineItems: session.line_items?.data || [],

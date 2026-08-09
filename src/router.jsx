@@ -369,18 +369,35 @@ async function successLoader({ request }) {
     return { sessionId: null, session: null };
   }
 
-  const response = await fetch(
-    `${API_BASE_URL}/api/checkout-session/${sessionId}`,
-  );
-  if (!response.ok) {
-    throw new Response("Order confirmation session not found.", {
-      status: response.status || 404,
-      statusText: "Not Found",
-    });
-  }
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-  const data = await response.json();
-  return { sessionId, session: data };
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/checkout-session/${sessionId}`,
+      { signal: controller.signal },
+    );
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Response("Order confirmation session not found.", {
+        status: response.status || 404,
+        statusText: "Not Found",
+      });
+    }
+
+    const data = await response.json();
+    return { sessionId, session: data };
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Response) {
+      throw error;
+    }
+    if (error?.name === "AbortError") {
+      return { sessionId, session: null, timeout: true };
+    }
+    throw error;
+  }
 }
 
 function SuccessPreview() {

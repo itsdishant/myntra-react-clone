@@ -48,6 +48,45 @@ const Success = ({ sessionId, session }) => {
     );
   }
 
+  const isPaid = session?.paymentStatus === "paid";
+
+  if (!isPaid) {
+    return (
+      <Box
+        component="main"
+        id="main-content"
+        className="mx-auto w-full max-w-shell px-4 py-12 sm:px-6 sm:py-16"
+      >
+        <Box className="mx-auto max-w-md rounded-2xl border border-(--color-border) bg-surface p-6 text-center shadow-soft sm:p-8">
+          <Box className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-(--color-primary-soft) text-(--color-primary) mx-auto">
+            <InfoOutlinedIcon sx={{ fontSize: 36 }} />
+          </Box>
+          <Typography
+            variant="h5"
+            className="mb-2 font-semibold text-(--color-foreground)"
+            sx={{ fontFamily: '"Cormorant", Georgia, serif' }}
+          >
+            Payment pending or incomplete
+          </Typography>
+          <Typography className="mb-6 text-sm text-(--color-foreground-muted)">
+            Your payment status is &ldquo;
+            {session?.paymentStatus || "unpaid"}&rdquo;. Please return to your
+            cart to retry checkout.
+          </Typography>
+          <Button
+            component={Link}
+            to="/bag"
+            variant="contained"
+            color="primary"
+            className="min-h-11! px-6! font-semibold!"
+          >
+            Return to Cart
+          </Button>
+        </Box>
+      </Box>
+    );
+  }
+
   return (
     <Box
       component="main"
@@ -76,12 +115,6 @@ const Success = ({ sessionId, session }) => {
             Order ID:{" "}
             <span className="font-normal">{session.id || sessionId}</span>
           </Typography>
-          {session.customerEmail ? (
-            <Typography className="mt-1 font-semibold text-(--color-foreground)">
-              Receipt sent to:{" "}
-              <span className="font-normal">{session.customerEmail}</span>
-            </Typography>
-          ) : null}
         </Box>
 
         {session.lineItems?.length ? (
