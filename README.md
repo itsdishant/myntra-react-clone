@@ -35,7 +35,7 @@ A Myntra-inspired fashion e-commerce clone rebuilt as an original brand with Ama
 
 ## Architecture
 
-```
+```text
 src/
   main.jsx          # App bootstrap: Redux Provider, MUI ThemeProvider, AppRouter
   router.jsx        # Routes, loaders (homeLoader, productLoader), preview wrappers, RootErrorElement
@@ -98,7 +98,7 @@ Utility classes available in `@layer utilities`:
 
 1. **Presentational pages/components** — no API calls in `pages/` or dumb `components/`
 2. **React Router 7 data API** — `createBrowserRouter`, loaders/actions, `useLoaderData`, `RouterProvider`
-3. **Keep Atelier styling** — 4-color tokens, Cormorant/Montserrat; avoid generic themes
+3. **Keep Atelier styling** — rose/amber token palette, Cormorant display / Montserrat body; avoid generic themes (`design-system/atelier/MASTER.md` remains authoritative for styling contract)
 4. **DummyJSON shape** — product objects must stay compatible with DummyJSON fields
 5. **Amazon-lite catalog UX** — results-first home; sidebar filters; dense grid; whole card links to PDP
 6. **Redux for Cart State** — RTK slice in `src/store/Bag.jsx` manages cart state
@@ -118,7 +118,7 @@ Utility classes available in `@layer utilities`:
 
 ## Project Structure (Key Files)
 
-```
+```text
 ├── src/
 │   ├── main.jsx                 # React root render: Provider, ThemeProvider, AppRouter
 │   ├── router.jsx               # Router setup, loaders, route wrappers, RootErrorElement

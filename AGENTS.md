@@ -40,7 +40,7 @@ Routes:
 
 ## Architecture
 
-```
+```text
 src/
   main.jsx          # App bootstrap: Redux Provider, MUI ThemeProvider, AppRouter
   router.jsx        # Routes, loaders (homeLoader, productLoader), preview wrappers, RootErrorElement
@@ -78,7 +78,7 @@ design-system/atelier/
 4. **Keep Atelier styling** — rose/amber tokens, Cormorant display / Montserrat body; avoid generic Inter/Roboto and default purple AI themes.
 5. **DummyJSON shape** — product objects must stay compatible with DummyJSON fields used by the UI (reviews, meta, dimensions, discountPercentage, etc.).
 6. **Amazon-lite catalog UX** — results-first home (no editorial hero); sidebar filters; dense grid; whole card links to PDP; cart actions `stopPropagation`.
-7. **Don’t wire Redux** until asked — RTK is installed for later; leave bag mock wiring in `main.jsx` for now.
+7. **Redux for Cart State** — RTK slice in `src/store/Bag.jsx` manages cart state.
 8. **Don’t expand scope** — no drive-by refactors, no unsolicited README/docs beyond what was requested.
 9. **`async function`**, never `function async`.
 10. **Design system overrides** — page MD files beat MASTER when both apply.
@@ -94,10 +94,10 @@ design-system/atelier/
 - **Search is two-step:** `searchDraft` (input) vs `searchQuery` (committed on submit); clearing chips must call `onClearSearch` from outlet context.
 - **Outlet context:** Home must use `useOutletContext()` for search; don’t re-invent search state inside `Home.jsx`.
 - **Tailwind v4:** tokens live in `@theme` in `index.css`; MUI `sx` / `className` often need `!` important utilities when fighting MUI defaults.
-- **Fast refresh lint:** defining route components in `main.jsx` triggers `react-refresh/only-export-components` — expected until wrappers move to their own files.
-- **Empty store file:** `src/store/Bag.jsx` is a stub; don’t assume Redux bag state exists.
+- **Fast refresh cleanliness:** `src/router.jsx` isolates route components from `main.jsx` to prevent `react-refresh` lint warnings.
+- **Redux store file:** `src/store/Bag.jsx` manages cart state via Redux Toolkit.
 - **Favicon / brand:** public Atelier “A” SVG; keep brand visible in header, not only in copy.
-- **Bag fixtures:** `mockBagItems` / `mockBagSummary` are static demos — cart actions on PDP are presentational until wired.
+- **Cart state:** Cart actions dispatch to the Redux store.
 
 ---
 

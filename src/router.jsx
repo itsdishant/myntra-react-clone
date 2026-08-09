@@ -6,6 +6,7 @@ import {
   useLoaderData,
   useNavigate,
   useOutletContext,
+  useRevalidator,
   useRouteError,
 } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -327,6 +328,7 @@ function RootLayout() {
 function RootErrorElement() {
   const error = useRouteError();
   const navigate = useNavigate();
+  const revalidator = useRevalidator();
 
   let title = "Something went wrong";
   let message = "An unexpected error occurred while loading this page.";
@@ -350,7 +352,7 @@ function RootErrorElement() {
         </Typography>
       </Alert>
       <Box className="flex gap-3">
-        <Button variant="contained" onClick={() => navigate(0)}>
+        <Button variant="contained" onClick={() => revalidator.revalidate()}>
           Try Again
         </Button>
         <Button variant="outlined" onClick={() => navigate("/")}>
